@@ -15,15 +15,16 @@ class ATopDownShooterCharacter : public ACharacter
 public:
 	ATopDownShooterCharacter();
 
+	virtual void BeginPlay() override;
+	
 	// Called every frame.
 	virtual void Tick(float DeltaSeconds) override;
+
 
 	/** Returns TopDownCameraComponent subobject **/
 	FORCEINLINE class UCameraComponent* GetTopDownCameraComponent() const { return TopDownCameraComponent; }
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	/** Returns CursorToWorld subobject **/
-	FORCEINLINE class UDecalComponent* GetCursorToWorld() const { return CursorToWorld; }
 
 private:
 
@@ -38,14 +39,21 @@ private:
 	class USpringArmComponent* CameraBoom;
 
 	/** A decal that projects to the cursor location. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	class UDecalComponent* CursorToWorld;
-	
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	//class UDecalComponent* CursorDecal;
+
+	UDecalComponent* CursorDecal;
 public:
 	//Properties
 	//Akeeper
-	float ForwardMoveScale;
-	float RightMoveScale;
+	//первый Х - вперед, назад
+	//второй У - вправо, влево.
+	FVector MoveScale2D;
+
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category="Cursor")
+		UMaterialInterface* CursorDecalMaterial;
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category="Cursor")
+		FVector CursorDecalSize = FVector(20.0f, 40.0f, 40.0f);
 	
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category="Movement")
 		float CurrentStaminaCPP = 0.0f;
@@ -87,6 +95,9 @@ public:
 	//Изменение состояния движения (бег, ходьба, прицеливание)
 	UFUNCTION(BlueprintCallable)
 	void ChangeMovementState();
+
+	UFUNCTION(BlueprintCallable)
+		UDecalComponent* GetCursorToWorld() const { return CursorDecal; }
 	//~Akeeper
 	//~Methods
 };

@@ -15,85 +15,87 @@
 //#include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
+#include "Kismet/GameplayStatics.h"
 //#include "Materials/Material.h"
 //#include "Engine/World.h"
 
 ATopDownShooterCharacter::ATopDownShooterCharacter()
 {
 	// Set size for player capsule
-	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+	this->GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
 	// Don't rotate character to camera direction
-	bUseControllerRotationPitch = false;
-	bUseControllerRotationYaw = false;
-	bUseControllerRotationRoll = false;
+	this->bUseControllerRotationPitch = false;
+	this->bUseControllerRotationYaw = false;
+	this->bUseControllerRotationRoll = false;
+
+	
 
 	// Configure character movement
-	GetCharacterMovement()->bOrientRotationToMovement = true; // Rotate character to moving direction
-	GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
-	GetCharacterMovement()->bConstrainToPlane = true;
-	GetCharacterMovement()->bSnapToPlaneAtStart = true;
+	this->GetCharacterMovement()->bOrientRotationToMovement = true; // Rotate character to moving direction
+	this->GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
+	this->GetCharacterMovement()->bConstrainToPlane = true;
+	this->GetCharacterMovement()->bSnapToPlaneAtStart = true;
 
 	// Create a camera boom...
-	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->SetUsingAbsoluteRotation(true); // Don't want arm to rotate when character does
-	CameraBoom->TargetArmLength = 800.f;
-	CameraBoom->SetRelativeRotation(FRotator(-60.f, 0.f, 0.f));
-	CameraBoom->bDoCollisionTest = false; // Don't want to pull camera in when it collides with level
+	this->CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+	this->CameraBoom->SetupAttachment(RootComponent);
+	this->CameraBoom->SetUsingAbsoluteRotation(true); // Don't want arm to rotate when character does
+	this->CameraBoom->TargetArmLength = 800.f;
+	this->CameraBoom->SetRelativeRotation(FRotator(-60.f, 0.f, 0.f));
+	this->CameraBoom->bDoCollisionTest = false; // Don't want to pull camera in when it collides with level
 
 	// Create a camera...
-	TopDownCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("TopDownCamera"));
-	TopDownCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-	TopDownCameraComponent->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+	this->TopDownCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("TopDownCamera"));
+	this->TopDownCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+	this->TopDownCameraComponent->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
 	// Create a decal in the world to show the cursor's location
-	CursorToWorld = CreateDefaultSubobject<UDecalComponent>("CursorToWorld");
-	CursorToWorld->SetupAttachment(RootComponent);
-	static ConstructorHelpers::FObjectFinder<UMaterial> DecalMaterialAsset(TEXT("Material'/Game/Blueprints/Game/M_Cursor_Decal.M_Cursor_Decal'"));
-	if (DecalMaterialAsset.Succeeded())
-	{
-		CursorToWorld->SetDecalMaterial(DecalMaterialAsset.Object);
-	}
-	CursorToWorld->DecalSize = FVector(16.0f, 32.0f, 32.0f);
-	CursorToWorld->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f).Quaternion());
+	// CursorToWorld = CreateDefaultSubobject<UDecalComponent>("CursorToWorld");
+	// CursorToWorld->SetupAttachment(RootComponent);
+	// static ConstructorHelpers::FObjectFinder<UMaterial> DecalMaterialAsset(TEXT("Material'/Game/Blueprints/Game/M_Cursor_Decal.M_Cursor_Decal'"));
+	// if (DecalMaterialAsset.Succeeded())
+	// {
+	// 	CursorToWorld->SetDecalMaterial(DecalMaterialAsset.Object);
+	// }
+	// CursorToWorld->DecalSize = FVector(16.0f, 32.0f, 32.0f);
+	// CursorToWorld->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f).Quaternion());
 
+	this->CursorDecalMaterial = ConstructorHelpers::FObjectFinder<UMaterial>(TEXT("Material'/Game/Blueprints/Game/M_Cursor_Decal.M_Cursor_Decal'")).Object;
+	
 	// Activate ticking in order to update the cursor every frame.
-	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = true;
+	this->PrimaryActorTick.bCanEverTick = true;
+	this->PrimaryActorTick.bStartWithTickEnabled = true;
 
-	ForwardMoveScale = 0.0f;
-	RightMoveScale = 0.0f;
+	this->MoveScale2D = FVector(0,0,0);
+	
+	//this->ForwardMoveScale = 0.0f;
+	//this->RightMoveScale = 0.0f;
+}
+
+void ATopDownShooterCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	this->CursorDecal = UGameplayStatics::SpawnDecalAtLocation(GetWorld(), CursorDecalMaterial, CursorDecalSize, FVector(0));
 }
 
 void ATopDownShooterCharacter::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
 
-	if (CursorToWorld != nullptr)
+	if (this->CursorDecal != nullptr)
 	{
-		if (UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled())
-		{
-			if (UWorld* World = GetWorld())
-			{
-				FHitResult HitResult;
-				FCollisionQueryParams Params(NAME_None, FCollisionQueryParams::GetUnknownStatId());
-				FVector StartLocation = TopDownCameraComponent->GetComponentLocation();
-				FVector EndLocation = TopDownCameraComponent->GetComponentRotation().Vector() * 2000.0f;
-				Params.AddIgnoredActor(this);
-				World->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_Visibility, Params);
-				FQuat SurfaceRotation = HitResult.ImpactNormal.ToOrientationRotator().Quaternion();
-				CursorToWorld->SetWorldLocationAndRotation(HitResult.Location, SurfaceRotation);
-			}
-		}
-		else if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		if (const APlayerController* PC = Cast<APlayerController>(GetController()))
 		{
 			FHitResult TraceHitResult;
-			PC->GetHitResultUnderCursorByChannel(TraceTypeQuery6, true, TraceHitResult);
-			FVector CursorFV = TraceHitResult.ImpactNormal;
-			FRotator CursorR = CursorFV.Rotation();
-			CursorToWorld->SetWorldLocation(TraceHitResult.Location);
-			CursorToWorld->SetWorldRotation(CursorR);
+			PC->GetHitResultUnderCursor(ECC_Visibility, true, TraceHitResult);
+			
+			const FVector CursorFV = TraceHitResult.ImpactNormal;
+			const FRotator CursorR = CursorFV.Rotation();
+			
+			this->CursorDecal->SetWorldLocation(TraceHitResult.Location);
+			this->CursorDecal->SetWorldRotation(CursorR);
 		}
 	}
 
@@ -111,47 +113,57 @@ void ATopDownShooterCharacter::SetupPlayerInputComponent(UInputComponent* pNewIn
 	}
 }
 
-void ATopDownShooterCharacter::MoveForwardCallback(float fScale)
+void ATopDownShooterCharacter::MoveForwardCallback(const float Scale)
 {
-	ForwardMoveScale = fScale;
+	this->MoveScale2D.X = Scale;
 }
 
-void ATopDownShooterCharacter::MoveRightCallback(float FScale)
+void ATopDownShooterCharacter::MoveRightCallback(const float Scale)
 {
-	RightMoveScale = FScale;
+	this->MoveScale2D.Y = Scale;
 }
 
-void ATopDownShooterCharacter::MovementTick(float fDeltaSeconds)
+void ATopDownShooterCharacter::MovementTick(const float DeltaSeconds)
 {
-	UpdateMovementState(fDeltaSeconds);
+	UpdateMovementState(DeltaSeconds);
 	
-	FVector vForwardDir = FVector(1.0f, 0.0f, 0.0f);
-	const FVector vRightDir = FVector(0.0f, 1.0f, 0.0f);
+	FVector ForwardDir = FVector(1.0f, 0.0f, 0.0f);
+	const FVector RightDir = FVector(0.0f, 1.0f, 0.0f);
+
+	//const FVector BackDir = FVector(-1.0f, 0.0f, 0.0f);
+	//const FVector LeftDir = FVector(0.0f, -1.0f, 0.0f);
+
+	const FVector actorLocation = GetActorLocation();
+	const FVector actorLookAtSprintLoc = actorLocation + MoveScale2D;
 	
-	const APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	const APlayerController* PlayerController = Cast<APlayerController>(this->GetController());
 	if (PlayerController && PlayerController->IsPlayerController())
 	{
-		constexpr ETraceTypeQuery FirstAddedTrace = TraceTypeQuery6;
-		FHitResult hitResult;
+		float fYaw = UKismetMathLibrary::FindLookAtRotation(actorLocation, actorLookAtSprintLoc).Yaw;
+		
+		FHitResult HitResult;
+		constexpr auto CursorLandscapeChannel = ECC_GameTraceChannel1;
 
-		const bool bSuccess = PlayerController->GetHitResultUnderCursorByChannel(FirstAddedTrace, true, hitResult);
-		if (bSuccess)
+		//Поворот персонажа в спринте теперь соответствует направлению движения
+		const bool bSuccess = PlayerController->GetHitResultUnderCursor(CursorLandscapeChannel, true, HitResult);
+		if (bSuccess && MovementState != EMovementState::Sprint_State)
 		{
-			const float FYaw = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), hitResult.Location).Yaw;
-			SetActorRotation(FRotator(0.0f, FYaw, 0.0f), ETeleportType::None);
-
-			if (MovementState == EMovementState::Sprint_State && ForwardMoveScale > 0 && CurrentStaminaCPP > 0.0f)
-				vForwardDir = (hitResult.Location - GetActorLocation()).GetSafeNormal();
+			fYaw = UKismetMathLibrary::FindLookAtRotation(actorLocation, HitResult.Location).Yaw;
+			
+			//if (MovementState == EMovementState::Sprint_State && MoveScale2D.X > 0 && CurrentStaminaCPP > 0.0f)
+				//ForwardDir = (HitResult.Location - GetActorLocation()).GetSafeNormal();
 		}
+
+		this->SetActorRotation(FRotator(0.0f, fYaw, 0.0f), ETeleportType::None);
 	}
 
-	if (MovementState == EMovementState::Sprint_State && ForwardMoveScale > 0 && CurrentStaminaCPP > 0.0f)
-		AddMovementInput(vForwardDir, ForwardMoveScale);
-	else if (MovementState != EMovementState::Sprint_State)
-	{
-		AddMovementInput(vForwardDir, ForwardMoveScale);
-		AddMovementInput(vRightDir, RightMoveScale);
-	}
+	//if (MovementState == EMovementState::Sprint_State && MoveScale2D.X > 0 && CurrentStaminaCPP > 0.0f)
+		//AddMovementInput(ForwardDir, MoveScale2D.X);
+	//if (MovementState != EMovementState::Sprint_State)
+	//{
+		AddMovementInput(ForwardDir, MoveScale2D.X);
+		AddMovementInput(RightDir, MoveScale2D.Y);
+	//}
 }
 
 void ATopDownShooterCharacter::UpdateMovementState(float DeltaSeconds)
@@ -196,11 +208,12 @@ void ATopDownShooterCharacter::UpdateMovementSpeed() const
 
 void ATopDownShooterCharacter::ChangeMovementState()
 {
-	if (!(SprintActivated && ForwardMoveScale > 0 && CurrentStaminaCPP > 0.0f) && !WalkActivated && !AimActivated)
+	if (!(SprintActivated && CurrentStaminaCPP > 0.0f) && !WalkActivated && !AimActivated)
 		MovementState = EMovementState::Run_State;
 	else
 	{
-		if (SprintActivated && ForwardMoveScale > 0 && CurrentStaminaCPP > 0.0f)
+		// if (SprintActivated && MoveScale2D.X > 0 && CurrentStaminaCPP > 0.0f)
+		if (SprintActivated && CurrentStaminaCPP > 0.0f)
 		{
 			MovementState = EMovementState::Sprint_State;
 			WalkActivated = false;
