@@ -3,10 +3,16 @@ Binaries
 DerivedDataCache
 Intermediate
 Saved
-Content/Environment
-Content/Characters
+Content/Animations
+Content/Collections
+Content/Developers
+Content/HDRI
 Content/Maps
-Content/Audio
+Content/Materials
+Content/Meshes
+Content/Particles
+Content/SFX
+Content/Textures
 Звуки mp32/
 Референс/
 .vscode
