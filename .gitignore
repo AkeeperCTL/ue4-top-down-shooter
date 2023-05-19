@@ -7,7 +7,12 @@ Content/Collections
 Content/Developers
 Content/HDRI
 Content/Maps
-Content/Materials
+Content/Materials/CityOfBrass
+Content/Materials/Default
+Content/Materials/Landmass
+Content/Materials/Megascans
+Content/Materials/Other
+Content/Materials/Particles
 Content/Meshes/Architecture
 Content/Meshes/Example
 Content/Meshes/Props
