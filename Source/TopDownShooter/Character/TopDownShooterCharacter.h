@@ -16,7 +16,8 @@ public:
 	ATopDownShooterCharacter();
 
 	virtual void BeginPlay() override;
-	
+	void CursorDecalTick() const;
+
 	// Called every frame.
 	virtual void Tick(float DeltaSeconds) override;
 

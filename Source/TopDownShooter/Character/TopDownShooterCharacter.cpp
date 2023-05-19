@@ -80,26 +80,47 @@ void ATopDownShooterCharacter::BeginPlay()
 	this->CursorDecal = UGameplayStatics::SpawnDecalAtLocation(GetWorld(), CursorDecalMaterial, CursorDecalSize, FVector(0));
 }
 
+void ATopDownShooterCharacter::CursorDecalTick() const
+{
+	if (!this->CursorDecal)
+		UE_LOG(LogTemp, Error, TEXT("Error in file %s and line %d"), __FILE__, __LINE__);
+
+	const APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+		UE_LOG(LogTemp, Error, TEXT("Error in file %s and line %d"), __FILE__, __LINE__);
+	
+	constexpr float TraceDistance = 10000.0f;
+	FVector WorldLocation;
+	FVector WorldDirection;
+	
+	PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
+
+	FCollisionQueryParams Params(NAME_None, FCollisionQueryParams::GetUnknownStatId());
+	Params.AddIgnoredActor(this);
+	
+	FHitResult TraceHitResult;
+	//PC->GetHitResultUnderCursor(ECC_Visibility, true, TraceHitResult);
+	GetWorld()->LineTraceSingleByChannel(
+		TraceHitResult,
+		WorldLocation,
+		WorldLocation + WorldDirection * TraceDistance,
+		ECC_Visibility,
+		Params);
+	
+	const FQuat SurfaceRotation = TraceHitResult.ImpactNormal.ToOrientationQuat();
+	this->CursorDecal->SetWorldLocationAndRotation(TraceHitResult.Location, SurfaceRotation);
+	//const FRotator CursorR = SurfaceRotation.Rotation();
+	
+	//this->CursorDecal->SetWorldLocation(TraceHitResult.Location);
+	//this->CursorDecal->SetWorldRotation(CursorR);
+}
+
 void ATopDownShooterCharacter::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
-
-	if (this->CursorDecal != nullptr)
-	{
-		if (const APlayerController* PC = Cast<APlayerController>(GetController()))
-		{
-			FHitResult TraceHitResult;
-			PC->GetHitResultUnderCursor(ECC_Visibility, true, TraceHitResult);
-			
-			const FVector CursorFV = TraceHitResult.ImpactNormal;
-			const FRotator CursorR = CursorFV.Rotation();
-			
-			this->CursorDecal->SetWorldLocation(TraceHitResult.Location);
-			this->CursorDecal->SetWorldRotation(CursorR);
-		}
-	}
-
+	
 	MovementTick(DeltaSeconds);
+	CursorDecalTick();
 }
 
 void ATopDownShooterCharacter::SetupPlayerInputComponent(UInputComponent* pNewInputComponent)
