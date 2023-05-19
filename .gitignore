@@ -8,7 +8,10 @@ Content/Developers
 Content/HDRI
 Content/Maps
 Content/Materials
-Content/Meshes
+Content/Meshes/Architecture
+Content/Meshes/Example
+Content/Meshes/Props
+Content/Meshes/Shapes
 Content/Particles
 Content/SFX
 Content/Textures
