@@ -3,7 +3,6 @@ Binaries
 DerivedDataCache
 Intermediate
 Saved
-Content/Animations
 Content/Collections
 Content/Developers
 Content/HDRI
@@ -15,6 +14,8 @@ Content/SFX
 Content/Textures
 Звуки mp32/
 Референс/
+Применить gitignore.bat/
+.gitignore/
 .vscode
 .vs
 .idea
