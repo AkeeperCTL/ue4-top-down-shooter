@@ -7,17 +7,13 @@
 #include "Engine/Classes/Kismet/KismetMathLibrary.h"
 //~Akeeper
 
-//#include "UObject/ConstructorHelpers.h"
 #include "Camera/CameraComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-//#include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "HeadMountedDisplayFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
-//#include "Materials/Material.h"
-//#include "Engine/World.h"
+
 
 ATopDownShooterCharacter::ATopDownShooterCharacter()
 {
@@ -28,8 +24,6 @@ ATopDownShooterCharacter::ATopDownShooterCharacter()
 	this->bUseControllerRotationPitch = false;
 	this->bUseControllerRotationYaw = false;
 	this->bUseControllerRotationRoll = false;
-
-	
 
 	// Configure character movement
 	this->GetCharacterMovement()->bOrientRotationToMovement = true; // Rotate character to moving direction
@@ -49,18 +43,7 @@ ATopDownShooterCharacter::ATopDownShooterCharacter()
 	this->TopDownCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("TopDownCamera"));
 	this->TopDownCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	this->TopDownCameraComponent->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
-
-	// Create a decal in the world to show the cursor's location
-	// CursorToWorld = CreateDefaultSubobject<UDecalComponent>("CursorToWorld");
-	// CursorToWorld->SetupAttachment(RootComponent);
-	// static ConstructorHelpers::FObjectFinder<UMaterial> DecalMaterialAsset(TEXT("Material'/Game/Blueprints/Game/M_Cursor_Decal.M_Cursor_Decal'"));
-	// if (DecalMaterialAsset.Succeeded())
-	// {
-	// 	CursorToWorld->SetDecalMaterial(DecalMaterialAsset.Object);
-	// }
-	// CursorToWorld->DecalSize = FVector(16.0f, 32.0f, 32.0f);
-	// CursorToWorld->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f).Quaternion());
-
+	
 	this->CursorDecalMaterial = ConstructorHelpers::FObjectFinder<UMaterial>(TEXT("Material'/Game/Blueprints/Game/M_Cursor_Decal.M_Cursor_Decal'")).Object;
 	
 	// Activate ticking in order to update the cursor every frame.
@@ -68,16 +51,15 @@ ATopDownShooterCharacter::ATopDownShooterCharacter()
 	this->PrimaryActorTick.bStartWithTickEnabled = true;
 
 	this->MoveScale2D = FVector(0,0,0);
-	
-	//this->ForwardMoveScale = 0.0f;
-	//this->RightMoveScale = 0.0f;
 }
 
 void ATopDownShooterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	this->CursorDecal = UGameplayStatics::SpawnDecalAtLocation(GetWorld(), CursorDecalMaterial, CursorDecalSize, FVector(0));
+	const APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC)
+		this->CursorDecal = UGameplayStatics::SpawnDecalAtLocation(GetWorld(), CursorDecalMaterial, CursorDecalSize, FVector(0));
 }
 
 void ATopDownShooterCharacter::CursorDecalTick() const
@@ -109,10 +91,6 @@ void ATopDownShooterCharacter::CursorDecalTick() const
 	
 	const FQuat SurfaceRotation = TraceHitResult.ImpactNormal.ToOrientationQuat();
 	this->CursorDecal->SetWorldLocationAndRotation(TraceHitResult.Location, SurfaceRotation);
-	//const FRotator CursorR = SurfaceRotation.Rotation();
-	
-	//this->CursorDecal->SetWorldLocation(TraceHitResult.Location);
-	//this->CursorDecal->SetWorldRotation(CursorR);
 }
 
 void ATopDownShooterCharacter::Tick(float DeltaSeconds)
@@ -160,7 +138,7 @@ void ATopDownShooterCharacter::MovementTick(const float DeltaSeconds)
 	const APlayerController* PlayerController = Cast<APlayerController>(this->GetController());
 	if (PlayerController && PlayerController->IsPlayerController())
 	{
-		float fYaw = UKismetMathLibrary::FindLookAtRotation(actorLocation, actorLookAtSprintLoc).Yaw;
+		float Yaw = UKismetMathLibrary::FindLookAtRotation(actorLocation, actorLookAtSprintLoc).Yaw;
 		
 		FHitResult HitResult;
 		constexpr auto CursorLandscapeChannel = ECC_GameTraceChannel1;
@@ -169,13 +147,13 @@ void ATopDownShooterCharacter::MovementTick(const float DeltaSeconds)
 		const bool bSuccess = PlayerController->GetHitResultUnderCursor(CursorLandscapeChannel, true, HitResult);
 		if (bSuccess && MovementState != EMovementState::Sprint_State)
 		{
-			fYaw = UKismetMathLibrary::FindLookAtRotation(actorLocation, HitResult.Location).Yaw;
+			Yaw = UKismetMathLibrary::FindLookAtRotation(actorLocation, HitResult.Location).Yaw;
 			
 			//if (MovementState == EMovementState::Sprint_State && MoveScale2D.X > 0 && CurrentStaminaCPP > 0.0f)
 				//ForwardDir = (HitResult.Location - GetActorLocation()).GetSafeNormal();
 		}
 
-		this->SetActorRotation(FRotator(0.0f, fYaw, 0.0f), ETeleportType::None);
+		this->SetActorRotation(FRotator(0.0f, Yaw, 0.0f), ETeleportType::None);
 	}
 
 	//if (MovementState == EMovementState::Sprint_State && MoveScale2D.X > 0 && CurrentStaminaCPP > 0.0f)

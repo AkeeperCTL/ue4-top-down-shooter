@@ -7,19 +7,12 @@ Content/Collections
 Content/Developers
 Content/HDRI
 Content/Maps
-Content/Materials/CityOfBrass
-Content/Materials/Default
-Content/Materials/Landmass
-Content/Materials/Megascans
-Content/Materials/Other
-Content/Materials/Particles
-Content/Meshes/Architecture
-Content/Meshes/Example
-Content/Meshes/Props
-Content/Meshes/Shapes
-Content/Particles
-Content/SFX
-Content/Textures
+Content/Materials/
+Content/Meshes/
+Content/Particles/
+Content/VFX/
+Content/SFX/
+Content/Textures/
 Звуки mp32/
 Референс/
 Применить gitignore.bat
